@@ -1,29 +1,55 @@
-﻿stages:
+stages:
   - build
   - push
 
 variables:
   IMAGE_TAG: $CI_COMMIT_REF_NAME
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+
+services:
+  - docker:dind
 
 before_script:
+  - docker info
   - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
 
 build_backend:
   stage: build
   script:
     - docker build -t $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG backend/
+  only:
+    - dev
+    - preprod
+    - prod
 
 build_frontend:
   stage: build
   script:
     - docker build -t $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG frontend/
+  only:
+    - dev
+    - preprod
+    - prod
 
 push_backend:
   stage: push
   script:
     - docker push $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG
+  needs:
+    - build_backend
+  only:
+    - dev
+    - preprod
+    - prod
 
 push_frontend:
   stage: push
   script:
     - docker push $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG
+  needs:
+    - build_frontend
+  only:
+    - dev
+    - preprod
+    - prod
