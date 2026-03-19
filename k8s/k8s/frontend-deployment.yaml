@@ -1,4 +1,4 @@
-﻿apiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: registry.gitlab.com/<user>/<repo>/frontend:dev
+          image: registry.gitlab.com/harshavardhan81860/harsha/frontend:dev
           ports:
             - containerPort: 80
