@@ -1,29 +1,37 @@
-﻿stages:
+stages:
   - build
-  - push
+
+image: docker:24.0.5
+
+services:
+  - docker:24.0.5-dind
 
 variables:
+  # Using the branch name (dev, preprod, prod) as the docker tag
   IMAGE_TAG: $CI_COMMIT_REF_NAME
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
 
 before_script:
+  - docker info
   - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
 
-build_backend:
+build_and_push_backend:
   stage: build
   script:
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG backend/
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME backend/
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "preprod"
+    - if: $CI_COMMIT_BRANCH == "prod"
 
-build_frontend:
+build_and_push_frontend:
   stage: build
   script:
-    - docker build -t $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG frontend/
-
-push_backend:
-  stage: push
-  script:
-    - docker push $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG
-
-push_frontend:
-  stage: push
-  script:
-    - docker push $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME frontend/
+    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "preprod"
+    - if: $CI_COMMIT_BRANCH == "prod"
