@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: registry.gitlab.com/harshavardhan81860/HARSHA/frontend:dev
+          image: registry.gitlab.com/harshavardhan81860/harsha/frontend:dev
           ports:
             - containerPort: 80
       imagePullSecrets:
