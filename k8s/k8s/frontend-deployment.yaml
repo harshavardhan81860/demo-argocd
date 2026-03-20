@@ -1,7 +1,8 @@
-﻿apiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
+  namespace: dev
 spec:
   replicas: 1
   selector:
@@ -14,6 +15,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: registry.gitlab.com/<user>/<repo>/frontend:dev
+          image: registry.gitlab.com/harshavardhan81860/harsha/frontend:dev
           ports:
             - containerPort: 80
+      imagePullSecrets:
+        - name: gitlab-registry-secret
