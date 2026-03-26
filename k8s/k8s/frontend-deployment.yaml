@@ -16,6 +16,7 @@ spec:
       containers:
         - name: frontend
           image: registry.gitlab.com/harshavardhan81860/harsha/frontend:preprod
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
       imagePullSecrets:
