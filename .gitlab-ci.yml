@@ -25,6 +25,8 @@ build_and_push_backend:
     - if: $CI_COMMIT_BRANCH == "dev"
     - if: $CI_COMMIT_BRANCH == "preprod"
     - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - backend/**/*
 
 build_and_push_frontend:
   stage: build
@@ -35,3 +37,5 @@ build_and_push_frontend:
     - if: $CI_COMMIT_BRANCH == "dev"
     - if: $CI_COMMIT_BRANCH == "preprod"
     - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - frontend/**/*
