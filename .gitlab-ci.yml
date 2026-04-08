@@ -1,5 +1,6 @@
 stages:
   - build
+  - notify
 
 image: docker:24.0.5
 
@@ -37,3 +38,12 @@ build_and_push_frontend:
       changes:
         - frontend/**/*
         - frontend-deployment.yaml
+
+notify_deployment:
+  stage: notify
+  script:
+    - echo "Deployment change detected. ArgoCD will sync this."
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - "*-deployment.yaml"
