@@ -1,5 +1,6 @@
 stages:
   - build
+  - notify
 
 image: docker:24.0.5
 
@@ -22,9 +23,10 @@ build_and_push_backend:
     - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME backend/
     - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME
   rules:
-    - if: $CI_COMMIT_BRANCH == "dev"
-    - if: $CI_COMMIT_BRANCH == "preprod"
-    - if: $CI_COMMIT_BRANCH == "prod"
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - backend/**/*
+        - backend-deployment.yaml
 
 build_and_push_frontend:
   stage: build
@@ -32,6 +34,16 @@ build_and_push_frontend:
     - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME frontend/
     - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME
   rules:
-    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - frontend/**/*
+        - frontend-deployment.yaml
+
+notify_deployment:
+  stage: notify
+  script:
+    - echo "Deployment change detected. ArgoCD will sync this."
+  rules:
     - if: $CI_COMMIT_BRANCH == "preprod"
-    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - "*-deployment.yaml"
