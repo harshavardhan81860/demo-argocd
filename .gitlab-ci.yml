@@ -27,6 +27,7 @@ build_and_push_backend:
     - if: $CI_COMMIT_BRANCH == "prod"
       changes:
         - backend/**/*
+        - backend-deployment.yaml
 
 build_and_push_frontend:
   stage: build
@@ -39,3 +40,4 @@ build_and_push_frontend:
     - if: $CI_COMMIT_BRANCH == "prod"
       changes:
         - frontend/**/*
+        - frontend-deployment.yaml
