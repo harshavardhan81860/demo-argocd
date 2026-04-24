@@ -94,8 +94,8 @@ deploy_backend:
     - git config --global user.name "harshavardhan81860"
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
   script:
-    - IMAGE="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
-    - sed -i "s|image:.*backend.*|image: ${IMAGE}|g" backend-deployment.yaml
+    - IMAGE_PATH="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
+    - sed -i "s|image:.*backend.*|image: ${IMAGE_PATH}|g" backend-deployment.yaml
     - git add backend-deployment.yaml
     - git commit -m "deploy backend $IMAGE_TAG [skip ci]" || echo "No changes"
     - git push origin HEAD:$CI_COMMIT_BRANCH
@@ -113,22 +113,13 @@ deploy_frontend:
     - git config --global user.email "harsha81860@gmail.com"
     - git config --global user.name "harshavardhan81860"
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
-  script:             # Level with 'image' and 'rules'
-    - IMAGE_FULL_PATH="$CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG"
-    - |
-      if [ ! -f "frontend-deployment.yaml" ]; then
-        echo "ERROR: frontend-deployment.yaml not found!"
-        exit 1
-      fi
-    - sed -i "s|image:.*frontend.*|image: ${IMAGE_FULL_PATH}|g" frontend-deployment.yaml
+  script:
+    - IMAGE_PATH="$CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG"
+    - sed -i "s|image:.*frontend.*|image: ${IMAGE_PATH}|g" frontend-deployment.yaml
     - git add frontend-deployment.yaml
-    - |
-      if git commit -m "chore(deploy): update frontend to $IMAGE_TAG [skip ci]"; then
-        git push origin HEAD:$CI_COMMIT_BRANCH
-      else
-        echo "No changes to commit"
-      fi
-  rules:              # Level with 'script'
+    - git commit -m "deploy frontend $IMAGE_TAG [skip ci]" || echo "No changes"
+    - git push origin HEAD:$CI_COMMIT_BRANCH
+  rules:
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"'
       changes:
         - frontend/**/*
