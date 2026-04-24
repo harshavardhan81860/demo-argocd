@@ -97,15 +97,12 @@ deploy_backend:
   script:
     - echo "Updating backend image tag to $IMAGE_TAG"
     - IMAGE_FULL_PATH="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
-    # Verify the deployment file actually exists
     - |
       if [ ! -f "backend-deployment.yaml" ]; then
         echo "ERROR: backend-deployment.yaml not found!"
         exit 1
       fi
-    # Perform the update
     - sed -i "s|image:.*backend.*|image: ${IMAGE_FULL_PATH}|g" backend-deployment.yaml
-    # Validation and Git Push
     - |
       if grep -q "${IMAGE_FULL_PATH}" backend-deployment.yaml; then
         echo "SUCCESS: Manifest updated to ${IMAGE_FULL_PATH}"
