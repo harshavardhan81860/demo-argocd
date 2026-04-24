@@ -95,7 +95,6 @@ deploy_backend:
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
   script:
     - IMAGE_PATH="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
-    - sed -i "s|image:.*backend.*|image: ${IMAGE_PATH}|g" backend-deployment.yaml
     - git add backend-deployment.yaml
     - git commit -m "deploy backend $IMAGE_TAG [skip ci]" || echo "No changes"
     - git push origin HEAD:$CI_COMMIT_BRANCH
@@ -115,7 +114,6 @@ deploy_frontend:
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
   script:
     - IMAGE_PATH="$CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG"
-    - sed -i "s|image:.*frontend.*|image: ${IMAGE_PATH}|g" frontend-deployment.yaml
     - git add frontend-deployment.yaml
     - git commit -m "deploy frontend $IMAGE_TAG [skip ci]" || echo "No changes"
     - git push origin HEAD:$CI_COMMIT_BRANCH
