@@ -95,6 +95,8 @@ deploy_backend:
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
   script:
     - IMAGE_PATH="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
+    - wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
+    - /usr/bin/yq -i '.spec.template.spec.containers[0].image = "'"$IMAGE_PATH"'"' backend-deployment.yaml
     - git add backend-deployment.yaml
     - git commit -m "deploy backend $IMAGE_TAG [skip ci]" || echo "No changes"
     - git push origin HEAD:$CI_COMMIT_BRANCH
@@ -114,6 +116,8 @@ deploy_frontend:
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
   script:
     - IMAGE_PATH="$CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG"
+    - wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
+    - /usr/bin/yq -i '.spec.template.spec.containers[0].image = "'"$IMAGE_PATH"'"' frontend-deployment.yaml
     - git add frontend-deployment.yaml
     - git commit -m "deploy frontend $IMAGE_TAG [skip ci]" || echo "No changes"
     - git push origin HEAD:$CI_COMMIT_BRANCH
