@@ -87,7 +87,8 @@ deploy_backend:
   image: alpine:latest
   script:
     - echo "Updating backend image tag in manifest"
-    - 'sed -i "s|image:.*backend.*|image: '"$CI_REGISTRY_IMAGE"'/backend:'"$IMAGE_TAG"'|" backend-deployment.yaml'
+    - IMAGE="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
+    - sed -i "s|image:.*backend.*|image: $IMAGE|" backend-deployment.yaml
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"'
       changes:
@@ -99,7 +100,8 @@ deploy_frontend:
   image: alpine:latest
   script:
     - echo "Updating frontend image tag in manifest"
-    - 'sed -i "s|image:.*frontend.*|image: '"$CI_REGISTRY_IMAGE"'/frontend:'"$IMAGE_TAG"'|" frontend-deployment.yaml'
+    - IMAGE="$CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG"
+    - sed -i "s|image:.*frontend.*|image: $IMAGE|" frontend-deployment.yaml
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"'
       changes:
