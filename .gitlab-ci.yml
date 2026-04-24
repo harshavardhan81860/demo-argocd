@@ -1,14 +1,9 @@
-stages:
-  - build
-  - notify
-
 image: docker:24.0.5
 
 services:
   - docker:24.0.5-dind
 
 variables:
-  # Using the branch name (dev, preprod, prod) as the docker tag
   IMAGE_TAG: $CI_COMMIT_REF_NAME
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
@@ -17,33 +12,109 @@ before_script:
   - docker info
   - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
 
-build_and_push_backend:
+stages:
+  - build
+  - test
+  - security
+  - deploy
+  - notify
+
+# ---------------- BUILD ----------------
+build_backend:
   stage: build
   script:
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME backend/
-    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_NAME
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG backend/
+    - docker push $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG
+
+build_frontend:
+  stage: build
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG frontend/
+    - docker push $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG
+
+# ---------------- TEST ----------------
+test_backend:
+  stage: test
+  image: node:20   # change based on your tech
+  cache:
+    key: backend-deps
+    paths:
+      - backend/node_modules/
+  script:
+    - cd backend
+    - npm install
+    - npm test
+
+test_frontend:
+  stage: test
+  image: node:20
+  cache:
+    key: frontend-deps
+    paths:
+      - frontend/node_modules/
+  script:
+    - cd frontend
+    - npm install
+    - npm run lint
+    - npm test
+
+# ---------------- SECURITY ----------------
+dependency_scan:
+  stage: security
+  image: node:20
+  cache:
+    key: backend-deps
+    policy: pull
+  script:
+    - cd backend
+    - npm audit --audit-level=high || true
+
+container_scan:
+  stage: security
+  image: 
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image my-app-image:latest
+
+# ---------------- DEPLOY ----------------
+
+deploy_backend:
+  stage: deploy
+  script:
+    - echo "Deploying backend"
+    - sed -i "s|image:.*backend.*|image: $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG|" backend-deployment.yaml
   rules:
     - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
       changes:
         - backend/**/*
         - backend-deployment.yaml
 
-build_and_push_frontend:
-  stage: build
+deploy_frontend:
+  stage: deploy
   script:
-    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME frontend/
-    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_NAME
+    - echo "Deploying frontend"
+    - sed -i "s|image:.*frontend.*|image: $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG|" frontend-deployment.yaml
   rules:
     - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
       changes:
         - frontend/**/*
         - frontend-deployment.yaml
 
-notify_deployment:
+# ---------------- NOTIFY ----------------
+notify:
   stage: notify
   script:
-    - echo "Deployment change detected. ArgoCD will sync this."
+    - echo "Deployment triggered. ArgoCD will sync automatically."
+    - sed -i "s|image:.*frontend.*|image: $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG|" frontend-deployment.yaml
   rules:
-    - if: $CI_COMMIT_BRANCH == "preprod"
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
       changes:
-        - "*-deployment.yaml"
+        - frontend/**/*
+        - frontend-deployment.yaml
+
+# ---------------- NOTIFY ----------------
+notify:
+  stage: notify
+  script:
+    - echo "Deployment triggered. ArgoCD will sync automatically."
