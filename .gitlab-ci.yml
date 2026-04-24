@@ -15,20 +15,26 @@ variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
 
-before_script:
-  - docker info
-  - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-
 
 # ---------------- BUILD ----------------
 build_backend:
   stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - docker build -t $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG backend/
     - docker push $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG
 
 build_frontend:
   stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - docker build -t $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG frontend/
     - docker push $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG
@@ -76,7 +82,7 @@ container_scan:
     name: aquasec/trivy:latest
     entrypoint: [""]
   script:
-    - trivy image my-app-image:latest
+    - trivy image $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG
 
 # ---------------- DEPLOY ----------------
 deploy_backend:
@@ -91,23 +97,19 @@ deploy_backend:
   script:
     - echo "Updating backend image tag to $IMAGE_TAG"
     - IMAGE_FULL_PATH="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
-    
     # Verify the deployment file actually exists
     - |
       if [ ! -f "backend-deployment.yaml" ]; then
         echo "ERROR: backend-deployment.yaml not found!"
         exit 1
       fi
-
     # Perform the update
     - sed -i "s|image:.*backend.*|image: ${IMAGE_FULL_PATH}|g" backend-deployment.yaml
-
     # Validation and Git Push
     - |
       if grep -q "${IMAGE_FULL_PATH}" backend-deployment.yaml; then
         echo "SUCCESS: Manifest updated to ${IMAGE_FULL_PATH}"
         git add backend-deployment.yaml
-        # [skip ci] prevents infinite pipeline loops
         if git commit -m "chore(deploy): update backend to $IMAGE_TAG [skip ci]"; then
           git push origin HEAD:$CI_COMMIT_BRANCH
         else
@@ -131,32 +133,22 @@ deploy_frontend:
     - git config --global user.email "harsha81860@gmail.com"
     - git config --global user.name "harshavardhan81860"
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
-  script:
-    - echo "Updating frontend image tag to $IMAGE_TAG"
+  script:             # Level with 'image' and 'rules'
     - IMAGE_FULL_PATH="$CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG"
-    
     - |
       if [ ! -f "frontend-deployment.yaml" ]; then
         echo "ERROR: frontend-deployment.yaml not found!"
         exit 1
       fi
-
     - sed -i "s|image:.*frontend.*|image: ${IMAGE_FULL_PATH}|g" frontend-deployment.yaml
-
+    - git add frontend-deployment.yaml
     - |
-      if grep -q "${IMAGE_FULL_PATH}" frontend-deployment.yaml; then
-        echo "SUCCESS: Manifest updated"
-        git add frontend-deployment.yaml
-        if git commit -m "chore(deploy): update frontend to $IMAGE_TAG [skip ci]"; then
-          git push origin HEAD:$CI_COMMIT_BRANCH
-        else
-          echo "No changes to commit"
-        fi
+      if git commit -m "chore(deploy): update frontend to $IMAGE_TAG [skip ci]"; then
+        git push origin HEAD:$CI_COMMIT_BRANCH
       else
-        echo "ERROR: Failed to update manifest."
-        exit 1
+        echo "No changes to commit"
       fi
-  rules:
+  rules:              # Level with 'script'
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"'
       changes:
         - frontend/**/*
