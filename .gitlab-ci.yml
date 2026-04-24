@@ -8,10 +8,6 @@ variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
 
-before_script:
-  - docker info
-  - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-
 stages:
   - build
   - test
@@ -22,12 +18,16 @@ stages:
 # ---------------- BUILD ----------------
 build_backend:
   stage: build
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - docker build -t $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG backend/
     - docker push $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG
 
 build_frontend:
   stage: build
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - docker build -t $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG frontend/
     - docker push $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG
@@ -35,7 +35,7 @@ build_frontend:
 # ---------------- TEST ----------------
 test_backend:
   stage: test
-  image: node:20   # change based on your tech
+  image: node:20
   cache:
     key: backend-deps
     paths:
@@ -74,29 +74,35 @@ container_scan:
   image: 
     name: aquasec/trivy:latest
     entrypoint: [""]
+  variables:
+    TRIVY_USERNAME: $CI_REGISTRY_USER
+    TRIVY_PASSWORD: $CI_REGISTRY_PASSWORD
+    TRIVY_AUTH_URL: $CI_REGISTRY
   script:
-    - trivy image my-app-image:latest
+    - trivy image $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG
 
 # ---------------- DEPLOY ----------------
-
 deploy_backend:
   stage: deploy
+  image: alpine:latest
   script:
-    - echo "Deploying backend"
+    - echo "Updating backend image tag in manifest"
     - sed -i "s|image:.*backend.*|image: $CI_REGISTRY_IMAGE/backend:$IMAGE_TAG|" backend-deployment.yaml
+    # Note: You still need to git commit/push here for ArgoCD to see it!
   rules:
-    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"'
       changes:
         - backend/**/*
         - backend-deployment.yaml
 
 deploy_frontend:
   stage: deploy
+  image: alpine:latest
   script:
-    - echo "Deploying frontend"
+    - echo "Updating frontend image tag in manifest"
     - sed -i "s|image:.*frontend.*|image: $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG|" frontend-deployment.yaml
   rules:
-    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
+    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"'
       changes:
         - frontend/**/*
         - frontend-deployment.yaml
@@ -104,17 +110,6 @@ deploy_frontend:
 # ---------------- NOTIFY ----------------
 notify:
   stage: notify
-  script:
-    - echo "Deployment triggered. ArgoCD will sync automatically."
-    - sed -i "s|image:.*frontend.*|image: $CI_REGISTRY_IMAGE/frontend:$IMAGE_TAG|" frontend-deployment.yaml
-  rules:
-    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"
-      changes:
-        - frontend/**/*
-        - frontend-deployment.yaml
-
-# ---------------- NOTIFY ----------------
-notify:
-  stage: notify
+  image: alpine:latest
   script:
     - echo "Deployment triggered. ArgoCD will sync automatically."
