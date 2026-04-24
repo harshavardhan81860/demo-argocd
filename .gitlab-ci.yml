@@ -92,30 +92,13 @@ deploy_backend:
     - apk add --no-cache git
     - git config --global user.email "harsha81860@gmail.com"
     - git config --global user.name "harshavardhan81860"
-    # Replace GIT_PUSH_TOKEN with your actual Masked Variable in GitLab Settings
     - git remote set-url origin https://oauth2:aQIBXp87iS7T1K_FfngOXWM6MQpvOjEKdTptZXUydg8.01.170e05n0u@gitlab.com/harshavardhan81860/harsha.git
   script:
-    - echo "Updating backend image tag to $IMAGE_TAG"
-    - IMAGE_FULL_PATH="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
-    - |
-      if [ ! -f "backend-deployment.yaml" ]; then
-        echo "ERROR: backend-deployment.yaml not found!"
-        exit 1
-      fi
-    - sed -i "s|image:.*backend.*|image: ${IMAGE_FULL_PATH}|g" backend-deployment.yaml
-    - |
-      if grep -q "${IMAGE_FULL_PATH}" backend-deployment.yaml; then
-        echo "SUCCESS: Manifest updated to ${IMAGE_FULL_PATH}"
-        git add backend-deployment.yaml
-        if git commit -m "chore(deploy): update backend to $IMAGE_TAG [skip ci]"; then
-          git push origin HEAD:$CI_COMMIT_BRANCH
-        else
-          echo "No changes to commit"
-        fi
-      else
-        echo "ERROR: Failed to update manifest."
-        exit 1
-      fi
+    - IMAGE="$CI_REGISTRY_IMAGE/backend:$IMAGE_TAG"
+    - sed -i "s|image:.*backend.*|image: ${IMAGE}|g" backend-deployment.yaml
+    - git add backend-deployment.yaml
+    - git commit -m "deploy backend $IMAGE_TAG [skip ci]" || echo "No changes"
+    - git push origin HEAD:$CI_COMMIT_BRANCH
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "preprod" || $CI_COMMIT_BRANCH == "prod"'
       changes:
