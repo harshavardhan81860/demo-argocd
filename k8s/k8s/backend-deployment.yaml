@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: registry.gitlab.com/harshavardhan81860/harsha/backend:dev
+          image: harshasha/harsha-backend:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
